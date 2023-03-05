@@ -3,7 +3,7 @@ import os
 from sklearn.model_selection import train_test_split
 import torch
 import torch.nn.functional as F
-
+from copy import deepcopy
 
 
 def save_checkpoint(dir, epoch, name='checkpoint', **kwargs):
@@ -75,3 +75,48 @@ def test(test_loader, model, loss_fn):
     }
 
 
+def split_dataloader(loader, split_ratio):
+    """takes a dataloader and returns two with the data split amongst them
+
+    loader : torch.utils.data.DataLoader
+    split_ratio : float
+        ratio of data to allocate to the first loader returned
+
+    Returns
+    --------
+    (torch.utils.data.DataLoader, torch.utils.data.DataLoader)
+    """
+
+    batch_size = loader.batch_size
+    num_workers = loader.num_workers
+    shuffle = False #cant check this
+    pin_memory = loader.pin_memory
+
+    dataset1 = deepcopy(loader.dataset)
+    dataset2 = deepcopy(loader.dataset)
+
+    split_index = int(len(dataset1) * split_ratio)
+
+    dataset1.data = dataset1.data[:split_index]
+    dataset1.targets = dataset1.targets[:split_index]
+
+    dataset2.data = dataset2.data[split_index:]
+    dataset2.targets = dataset2.targets[split_index:]
+    
+
+    loader1 = torch.utils.data.DataLoader(
+        dataset1,
+        batch_size=batch_size,
+        shuffle=shuffle,
+        num_workers=num_workers,
+        pin_memory=pin_memory
+    )
+
+    loader2 = torch.utils.data.DataLoader(
+        dataset2,
+        batch_size=batch_size,
+        shuffle=shuffle,
+        num_workers=num_workers,
+        pin_memory=pin_memory
+    )
+    return loader1, loader2

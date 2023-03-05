@@ -144,4 +144,6 @@ def loaders(dataset, path, batch_size, num_workers, transform_name="Normalize", 
            }, num_classes
 
 if(__name__ == "__main__"):
-    loaders = loaders("FashionMNIST", "data", 128, 4, "Normalize", 0.3, False)
+    loaders, _ = loaders("CIFAR10", "data", 128, 4, "Normalize", 0.3, False)
+    import utils
+    loader1, loader2 = utils.split_dataloader(loaders["train"], 0.4)
