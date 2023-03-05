@@ -82,6 +82,23 @@ class Transforms:
 
 def loaders(dataset, path, batch_size, num_workers, transform_name="Normalize", val_size = 0.1, use_test=False,
             shuffle_train=True):
+    """ return train and test loader for the given dataset; if use_test is False then val_size determines how many of the train samples are in the test_loader
+    dataset : str
+        name of the dataset (CIFAR or CIFAR100)
+    path : str
+        folder where the dataset is stored
+    batch_size : int 
+    num_workers : int
+    transform_name : str
+        name of the transform to be applied to the data (e.g. Normalize - see data.py)
+    val_size : float
+        only use if use_test is false; defines the ratio of samples used in the test_loader
+    use_test : bool
+        whether to use the test set that is being held out during development
+
+    
+    """
+
     if(use_test and val_size is not None):
         raise ValueError("Can't use test and pass val_size simultaneously")
     if(val_size == 0):
@@ -93,7 +110,7 @@ def loaders(dataset, path, batch_size, num_workers, transform_name="Normalize", 
     if(type(num_classes) == torch.Tensor):
         num_classes = num_classes.item()
     if use_test:
-        print('You are going to run models on the test set. Are you sure?')
+        print('You are about to run models on the test set. Please ensure that this is intended')
         test_set = ds(path, train=False, download=True, transform=transform.test)
     else:
         n_val = int(len(train_set) * val_size)
