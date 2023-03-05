@@ -11,70 +11,109 @@ import utils
 import data
 import models
 
+def train_loop(dir, seed, dataset, data_path, model, batch_size, num_workers, transform, use_test, val_size, lr, momentum, wd, resume, epochs, save_freq):
 
-def main(args):
-    if(args.use_test and args.val_size != 1.0):
-        raise ValueError("Can't scale validation set when using test")
-    
-    os.makedirs(args.dir, exist_ok=True)
-    with open(os.path.join(args.dir, 'command.sh'), 'a') as f:
+
+    """ Trains a neural network for multiple epochs
+
+    Parameters
+    ----------
+
+    dir : str
+        folder where checkpoints are stored
+    seed : int
+    dataset : str
+        name of the dataset we train on (CIFAR10 or CIFAR100)
+    model : str
+        name of the model to use (see models/)
+    data_path : str
+        folder where we store the dataset
+    batch_size : int
+    num_workers : int
+    transform : str
+        name of the transform applied to the dataset after loading it (defined in data.py) examples are Normalize and VGG
+    use_test : bool
+        whether to use the test set
+    val_size : int
+        FILL IN LATER
+    lr : float
+    momentum : float
+    wd : float
+    resume : str
+        if not None the training is resumed from the checkpoint in "{dir}/{resume}
+    epochs : int
+        how many epochs the network should be trained for in total (f.e. if epochs = 10 and we resume training after 7 epochs the method will run for 3 more epochs)
+    save_freq : int
+        how frequently the model is stored in checkpoints (in epochs)
+
+    Returns
+    ----------
+
+    model : torch.nn.module
+        trained neural network
+    """
+
+    os.makedirs(dir, exist_ok=True)
+    with open(os.path.join(dir, 'command.sh'), 'a') as f:
         f.write(' '.join(sys.argv))
         f.write('\n')
 
     torch.backends.cudnn.benchmark = True
-    torch.manual_seed(args.seed)
-    torch.cuda.manual_seed(args.seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
 
     loaders, num_classes = data.loaders(
-        dataset = args.dataset,
-        path = args.data_path,
-        batch_size = args.batch_size,
-        num_workers = args.num_workers,
-        transform_name = args.transform,
-        use_test = args.use_test,
-        val_size=args.val_size
+        dataset = dataset,
+        path = data_path,
+        batch_size = batch_size,
+        num_workers = num_workers,
+        transform_name = transform,
+        use_test = use_test,
+        val_size= val_size
     )
 
- 
-    
-    model_class = getattr(models, args.model)
+    model_class = getattr(models, model)
     model = model_class(num_classes = num_classes)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model = model.to(device)
 
+    
     optimizer = torch.optim.SGD(
         model.parameters(),
-        lr=args.lr,
-        momentum=args.momentum,
-        weight_decay=args.wd
+        lr=lr,
+        momentum=momentum,
+        weight_decay=wd
     )
     loss_fn = nn.CrossEntropyLoss
 
     start_epoch = 1
-    if args.resume is not None:
-        print('Resume training from %s' % args.resume)
-        checkpoint = torch.load(args.resume)
+    if resume is not None:
+        print('Resume training from %s' % resume)
+        checkpoint = torch.load(resume)
         start_epoch = checkpoint['epoch'] + 1
         model.load_state_dict(checkpoint['model_state'])
         optimizer.load_state_dict(checkpoint['optimizer_state'])
     else:
         utils.save_checkpoint(
-        args.dir,
+        dir,
         start_epoch - 1,
         model_state=model.state_dict(),
         optimizer_state=optimizer.state_dict()
         )
+    lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[100, 150], last_epoch=start_epoch - 2)
+    
     columns = ['ep', 'mean_tr_loss', 'tr_acc', 'mean_te_loss', 'te_acc', 'time']
     test_res = {'mean_loss': None, 'accuracy': None}
-    for epoch in range(start_epoch, args.epochs + 1):
+    for epoch in range(start_epoch, epochs + 1):
         time_ep = time.time()
 
         train_res = utils.train(loaders['train'], model, optimizer, loss_fn)
+        lr_scheduler.step()
         test_res = utils.test(loaders['test'], model, loss_fn)
 
-        if(epoch % args.save_freq == 0 or epoch == args.epochs):
+        if(epoch % save_freq == 0 or epoch == epochs):
             utils.save_checkpoint(
-                args.dir,
+                dir,
                 epoch,
                 model_state=model.state_dict(),
                 optimizer_state=optimizer.state_dict()
@@ -92,7 +131,15 @@ def main(args):
             table = table.split('\n')[2]
         print(table)
     
-    utils.predict_and_store(args.dir + "/validation.npz", loaders['test'], model, loss_fn)
+    if epochs % save_freq != 0:
+        utils.save_checkpoint(
+            dir,
+            epoch,
+            model_state=model.state_dict(),
+            optimizer_state=optimizer.state_dict()
+        )
+    return model
+    
 
 
 if __name__ == "__main__":
@@ -122,7 +169,7 @@ if __name__ == "__main__":
     parser.add_argument('--save_freq', type=int, default=50, metavar='N',
                         help='save frequency (default: 50)')
     parser.add_argument('--lr', type=float, default=0.01, metavar='LR',
-                        help='initial learning rate (default: 0.01)')
+                        help='initial learning rate (default: 0.1)')
     parser.add_argument('--momentum', type=float, default=0.9, metavar='M',
                         help='SGD momentum (default: 0.9)')
     parser.add_argument('--wd', type=float, default=1e-4, metavar='WD',
@@ -132,6 +179,6 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-
-    main(args)
+    config = vars(args)
+    train_loop(**config)
         

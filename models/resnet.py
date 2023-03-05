@@ -2,10 +2,9 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.init as init
-import resnet
 import torch.nn.functional as F
 # We define all the classes and function regarding the ResNet architecture in this code cell
-__all__ = ['ResNet', 'resnet20', 'resnet32', 'resnet44', 'resnet56', 'resnet110', 'resnet1202']
+__all__ = ['ResNet', 'ResNet20', 'ResNet32', 'ResNet44', 'ResNet56', 'ResNet110', 'ResNet1202']
  
 def _weights_init(m):
     """
@@ -99,27 +98,27 @@ class ResNet(nn.Module):
     
 class ResNet20(ResNet):
     def __init__(self, num_classes):
-        super().__init__(block = BasicBlock, num_block = [3, 3, 3], num_classes = num_classes)
+        super().__init__(block = BasicBlock, num_blocks =  [3, 3, 3], num_classes = num_classes)
 
     
 class ResNet32(ResNet):
     def __init__(self, num_classes):
-        super().__init__(block = BasicBlock, num_block = [5,5,5], num_classes = num_classes)
+        super().__init__(block = BasicBlock, num_blocks =  [5,5,5], num_classes = num_classes)
 
     
 class ResNet44(ResNet):
     def __init__(self, num_classes):
-        super().__init__(block = BasicBlock, num_block = [7, 7, 7], num_classes = num_classes)
+        super().__init__(block = BasicBlock, num_blocks =  [7, 7, 7], num_classes = num_classes)
     
 class ResNet56(ResNet):
     def __init__(self, num_classes):
-        super().__init__(block = BasicBlock, num_block =  [9, 9, 9], num_classes = num_classes)
+        super().__init__(block = BasicBlock, num_blocks =   [9, 9, 9], num_classes = num_classes)
     
 class ResNet110(ResNet):
     def __init__(self, num_classes):
-        super().__init__(block = BasicBlock, num_block =[18, 18, 18], num_classes = num_classes)
+        super().__init__(block = BasicBlock, num_blocks = [18, 18, 18], num_classes = num_classes)
     
 class ResNet1202(ResNet):
     def __init__(self, num_classes):
-        super().__init__(block = BasicBlock, num_block =[200, 200, 200], num_classes = num_classes)
+        super().__init__(block = BasicBlock, num_blocks = [200, 200, 200], num_classes = num_classes)
 
