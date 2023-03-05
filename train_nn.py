@@ -11,7 +11,7 @@ import utils
 import data
 import models
 
-def train_loop(dir, seed, dataset, data_path, model, batch_size, num_workers, transform, use_test, val_size, lr, momentum, wd, resume, epochs, save_freq):
+def train_loop(dir, seed, dataset, data_path, model, batch_size, num_workers, transform, use_test, val_size, lr, momentum, wd, resume, epochs, save_freq, n_return_models = 1):
 
 
     """ Trains a neural network for multiple epochs
@@ -45,12 +45,14 @@ def train_loop(dir, seed, dataset, data_path, model, batch_size, num_workers, tr
         how many epochs the network should be trained for in total (f.e. if epochs = 10 and we resume training after 7 epochs the method will run for 3 more epochs)
     save_freq : int
         how frequently the model is stored in checkpoints (in epochs)
-
+    n_return_models : int
+        the method returns a list of the n last epochs models - not compatible with resume
+        
     Returns
     ----------
 
-    model : torch.nn.module
-        trained neural network
+    model : List[torch.nn.module]
+        Trained neural networks from the last n_return_models epochs. The final model is at the last index [-1]
     """
 
     os.makedirs(dir, exist_ok=True)
@@ -104,13 +106,19 @@ def train_loop(dir, seed, dataset, data_path, model, batch_size, num_workers, tr
     
     columns = ['ep', 'mean_tr_loss', 'tr_acc', 'mean_te_loss', 'te_acc', 'time']
     test_res = {'mean_loss': None, 'accuracy': None}
+
+    result = []
+
     for epoch in range(start_epoch, epochs + 1):
         time_ep = time.time()
 
         train_res = utils.train(loaders['train'], model, optimizer, loss_fn)
         lr_scheduler.step()
         test_res = utils.test(loaders['test'], model, loss_fn)
-
+        
+        if(epochs + 1 - epoch <= n_return_models):
+            result.append(model.clone())
+        
         if(epoch % save_freq == 0 or epoch == epochs):
             utils.save_checkpoint(
                 dir,
@@ -138,7 +146,7 @@ def train_loop(dir, seed, dataset, data_path, model, batch_size, num_workers, tr
             model_state=model.state_dict(),
             optimizer_state=optimizer.state_dict()
         )
-    return model
+    return result
     
 
 
@@ -166,8 +174,8 @@ if __name__ == "__main__":
                         help='checkpoint to resume training from (default: None)')
     parser.add_argument('--epochs', type=int, default=200, metavar='N',
                         help='number of epochs to train (default: 200)')
-    parser.add_argument('--save_freq', type=int, default=50, metavar='N',
-                        help='save frequency (default: 50)')
+    parser.add_argument('--save_freq', type=int, default=25, metavar='N',
+                        help='save frequency (default: 25)')
     parser.add_argument('--lr', type=float, default=0.01, metavar='LR',
                         help='initial learning rate (default: 0.1)')
     parser.add_argument('--momentum', type=float, default=0.9, metavar='M',
@@ -180,5 +188,31 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     config = vars(args)
-    train_loop(**config)
-        
+    
+    #train_loop(**config)
+
+    #other experiments
+    config["epochs"] = 60
+
+    models1 = train_loop(n_return_models=11, **config)
+    models1 = [models1[0], models1[5], models1[-1]]
+
+    models2 = train_loop(n_return_models=11, **config)
+    models2 = [models2[0], models2[5], models2[-1]]
+
+    models3 = train_loop(n_return_models=11, **config)
+    models3 = [models3[0], models3[5], models3[-1]]
+
+    loaders, num_classes = data.loaders(
+        dataset = args.dataset,
+        path = args.data_path,
+        batch_size = args.batch_size,
+        num_workers = args.num_workers,
+        transform_name = args.transform,
+        use_test = args.use_test,
+        val_size= args.val_size
+    )
+
+    valid_loader, test_loader = utils.split_dataloader(loaders["test"])
+
+    
