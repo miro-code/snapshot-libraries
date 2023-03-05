@@ -80,7 +80,7 @@ class Transforms:
             ])
 
 
-def loaders(dataset, path, batch_size, num_workers, transform_name, val_size = 0.1, use_test=False,
+def loaders(dataset, path, batch_size, num_workers, transform_name="Normalize", val_size = 0.1, use_test=False,
             shuffle_train=True):
     if(use_test and val_size is not None):
         raise ValueError("Can't use test and pass val_size simultaneously")
