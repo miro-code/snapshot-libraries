@@ -120,3 +120,27 @@ def split_dataloader(loader, split_ratio):
         pin_memory=pin_memory
     )
     return loader1, loader2
+
+
+def predictions(test_loader, model):
+    """
+    get ndarrays of model predictions on dataloader
+
+    test_loader : torch.utils.data.DataLoader  
+    model : torch.nn.module
+
+    Returns
+    -------
+
+    (ndarray, ndarray) - probability predictions, true labels
+    """
+    model.eval()
+    preds = []
+    targets = []
+    for input, target in test_loader:
+        input = input.cuda(non_blocking =True)
+        output = model(input)
+        probs = F.softmax(output, dim=1)
+        preds.append(probs.cpu().data.numpy())
+        targets.append(target.numpy())
+    return np.vstack(preds), np.concatenate(targets)

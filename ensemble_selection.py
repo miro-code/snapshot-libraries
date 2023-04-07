@@ -32,6 +32,11 @@ def greedy_selection_without_replacement(n_members, val_predictions, true_labels
         metric the ensemble seletion should optimize - must return strictly non-negative values
     minimize_metric_fn : bool
         indicates whether to minimize or maximize the metric function
+
+    Returns
+    -------
+    ndarray[bool] each flag indicates if the baselearner at the corresponding index is in the array or not
+    
     """
     ensemble_membership_flags = [False] * len(val_predictions) #has True for indices of base learners that end up in the ensemble
     ensemble_val_predictions = [] #stores the val_predictions of the ensemble members
@@ -40,7 +45,7 @@ def greedy_selection_without_replacement(n_members, val_predictions, true_labels
 
     for _ in range(n_members):
         current_best_next_index = ensemble_membership_flags.index(False)
-        current_best_performance = metric_fn(ensemble_val_predictions + val_predictions[current_best_next_index], true_labels)
+        current_best_performance = metric_fn(ensemble_val_predictions + [val_predictions[current_best_next_index]], true_labels)
 
         for i in range(current_best_next_index, len(ensemble_membership_flags)):
             #for every base learner (that might not yet be in the ensemble)
@@ -48,7 +53,7 @@ def greedy_selection_without_replacement(n_members, val_predictions, true_labels
                 #skip if already in ensemble
                 continue 
 
-            performance = metric_fn(ensemble_val_predictions + val_predictions[i], true_labels)
+            performance = metric_fn(ensemble_val_predictions + [val_predictions[i]], true_labels)
 
             if(performance * minimize_factor > current_best_performance * minimize_factor):
                 current_best_next_index = i
@@ -56,7 +61,7 @@ def greedy_selection_without_replacement(n_members, val_predictions, true_labels
         
         ensemble_val_predictions.append(val_predictions[current_best_next_index])
         ensemble_membership_flags[current_best_next_index] = True
-    return ensemble_membership_flags
+    return np.array(ensemble_membership_flags)
 
 
             
