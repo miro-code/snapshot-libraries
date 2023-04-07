@@ -199,7 +199,7 @@ if __name__ == "__main__":
 
     config = vars(args)
 
-    config["epochs"] = 10
+    config["epochs"] = 300
 
     N_RUNS = 5
     
