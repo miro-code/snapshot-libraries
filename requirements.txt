@@ -1,3 +1,4 @@
 torch
 openml
 scikit-learn
+tabulate
